@@ -9,7 +9,7 @@ android {
         applicationId namespace
         minSdkVersion 34
         targetSdkVersion 37
-        versionCode rootProject.ext.commitCount
+        versionCode 7
         versionName "1.2.0"
     }
 

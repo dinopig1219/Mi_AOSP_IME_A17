@@ -1,0 +1,113 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    compileSdkVersion 37
+
+    defaultConfig {
+        applicationId namespace
+        minSdkVersion 34
+        targetSdkVersion 37
+        versionCode rootProject.ext.commitCount
+        versionName "1.2.0"
+    }
+
+    Properties localProperties = new Properties()
+    if (project.rootProject.file('local.properties').exists()) {
+        localProperties.load(project.rootProject.file('local.properties').newDataInputStream())
+    }
+
+    signingConfigs {
+        if (localProperties.getProperty("storeFile") != null) {
+            config {
+                storeFile project.rootProject.file(localProperties.getProperty("storeFile"))
+                storePassword localProperties.getProperty("storePassword")
+                keyAlias localProperties.getProperty("keyAlias")
+                keyPassword localProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        configureEach {
+            vcsInfo.include false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            if (localProperties.getProperty("storeFile") != null) {
+                signingConfig signingConfigs.config
+            }
+        }
+        release {
+            if (localProperties.getProperty("storeFile") != null) {
+                signingConfig signingConfigs.config
+            } else {
+                signingConfig signingConfigs.debug
+            }
+            minifyEnabled true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    lint {
+        checkReleaseBuilds false
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+    packagingOptions {
+        jniLibs {
+            excludes += ['kotlin/**', 'META-INF/androidx/**']
+        }
+        resources {
+            excludes += ['kotlin/**', 'META-INF/androidx/**']
+        }
+    }
+
+
+    dependenciesInfo.includeInApk false
+    enableKotlin = false
+    namespace 'io.github.howard20181.ime'
+}
+base {
+    archivesName = project.name + "-" + android.defaultConfig.versionName + "." + android.defaultConfig.versionCode
+}
+dependencies {
+    implementation "androidx.annotation:annotation:1.10.0"
+    compileOnly 'io.github.libxposed:api:102.0.0'
+    compileOnly project(":hiddenapi:stubs")
+    implementation project(":hiddenapi:bridge")
+    implementation 'io.github.libxposed:service:102.0.0'
+}
+
+tasks.register('applyXposedDebug') {
+    group "xposed"
+    dependsOn "installDebug"
+    description "Install the debug APK and let LSPosed API 102 hot reload the module."
+}
+
+tasks.register('applyXposedRelease') {
+    group "xposed"
+    dependsOn "installRelease"
+    description "Install the release APK and let LSPosed API 102 hot reload the module."
+}
+
+tasks.register('applyXposedImeDebug', Exec) {
+    group "xposed"
+    dependsOn "installDebug"
+    commandLine "adb", "shell", "am", "force-stop", "com.google.android.inputmethod.latin"
+    ignoreExitValue = true
+}
+
+tasks.register('applyXposedImeRelease', Exec) {
+    group "xposed"
+    dependsOn "installRelease"
+    commandLine "adb", "shell", "am", "force-stop", "com.google.android.inputmethod.latin"
+    ignoreExitValue = true
+}
